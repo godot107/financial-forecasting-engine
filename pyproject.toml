@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fce"
+version = "0.0.1"
+description = "Probabilistic Financial Forecasting & Hybrid Accounting Engine"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "pyarrow>=15",
+    "requests>=2.31",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# Heavy pillar deps are opt-in so the accounting core + tests install fast.
+full = ["fredapi>=0.5", "jax>=0.4.25", "numpyro>=0.13", "QuantLib>=1.33", "cvxpy>=1.4", "shap>=0.44"]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+include = ["fce*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

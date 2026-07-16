@@ -1,0 +1,18 @@
+# Secrets
+.env
+
+# Project-local virtual environment (locked decision #4)
+.venv/
+
+# Cached data snapshots (regenerable; pinned by vintage). Keep the dir, not the data.
+data/*.parquet
+data/*.npz
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+build/
+dist/

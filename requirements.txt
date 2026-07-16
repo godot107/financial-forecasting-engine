@@ -1,0 +1,38 @@
+# Financial Forecasting Engine — full dependency set.
+# Heavy/conflict-prone stack → install into a PROJECT-LOCAL .venv (locked decision #4),
+# never the shared workspace venv.
+#
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt && pip install -e .
+
+# --- Core (needed for the MVP accounting slice + tests) --------------------
+numpy>=1.26
+pandas>=2.1
+pyarrow>=15          # parquet cache layer
+requests>=2.31       # EIA client
+python-dotenv>=1.0
+fredapi>=0.5         # FRED client
+
+# --- Pillar 1: probabilistic drivers ---------------------------------------
+# NumPyro only (locked decision #2) — rides the JAX used by the accounting layer.
+# Installing numpyro pulls a compatible jax/jaxlib (CPU wheels by default).
+numpyro>=0.15
+
+# --- Pillar 2: term structure ----------------------------------------------
+QuantLib>=1.33
+
+# --- Pillar 4: stochastic optimization -------------------------------------
+cvxpy>=1.4           # continuous convex allocation; ECOS/SCS solvers ship with it
+
+# --- Explainability / deck -------------------------------------------------
+shap>=0.44
+matplotlib>=3.8
+jupyterlab>=4.0
+plotly>=5.20          # interactive dashboard/notebook charts
+kaleido>=0.2          # static PNG export of Plotly figs for the deck
+nbformat>=5.10        # notebook authoring/execution
+nbconvert>=7.0
+ipykernel>=6.29
+
+# --- Dev -------------------------------------------------------------------
+pytest>=8.0
