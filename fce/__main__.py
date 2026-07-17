@@ -30,12 +30,22 @@ def main() -> None:
         "--report", action="store_true",
         help="print the CFO-ready executive summary (Markdown)",
     )
+    parser.add_argument(
+        "--validate", action="store_true",
+        help="print the model-validation report (curve repricing, PPC, VaR backtest)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
     )
+
+    if args.validate:
+        from fce.validate.report import validation_report
+
+        print(validation_report())
+        return
 
     if args.report:
         from fce.report import executive_summary

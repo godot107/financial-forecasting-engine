@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-44%20passing-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-NumPyro%20%C2%B7%20JAX%20%C2%B7%20CVXPY%20%C2%B7%20QuantLib-8A2BE2)
 
 A quantitative engine for allocating a multi-year CapEx budget across competing
@@ -86,7 +86,8 @@ python -m fce --allocate         # CFaR-constrained allocation (Pillars 3+4)
 python -m fce --allocate --hmm   # drive it with the NumPyro HMM (Pillar 1)
 python -m fce --allocate --hmm --quantlib   # + term-structure discounting & floating debt (Pillar 2)
 python -m fce --report --hmm     # CFO-ready executive summary in Markdown (Pillar 5)
-pytest                           # 38 tests: golden identities, leakage-free splits, model recovery, curve/debt
+python -m fce --validate         # model-validation report: curve repricing, PPC, VaR backtest
+pytest                           # 44 tests: golden identities, leakage-free splits, model recovery, curve/debt, validators
 ```
 
 No API keys required to run — the driver falls back to a reproducible synthetic
@@ -115,6 +116,28 @@ The pillars culminate in a mock CFO / capital-allocation-committee presentation:
 - [`deck/EXECUTIVE_SUMMARY.md`](deck/EXECUTIVE_SUMMARY.md) — the committed snapshot of
   `python -m fce --report --hmm`; every headline number in the deck traces to it.
 
+## Validation — are the *metrics* trustworthy?
+
+Unit tests prove the code is correct; a separate layer (`fce/validate/`) proves the
+*numbers* are calibrated — the distinction an SR 11-7 model-risk review turns on.
+Each validator maps a produced metric to a textbook technique, and each is
+demonstrated to have diagnostic *power* (a deliberately misspecified model is
+flagged, not just passed):
+
+- **Curve repricing** — the bootstrapped term structure reprices its own deposit
+  and swap inputs to ~0 bp (a pure round-trip; Ma Weiming Ch. 5, Swindle §7).
+- **Posterior predictive checks** — the HMM reproduces the data's fat tails,
+  volatility clustering, and worst drawdown; a single-vol (GBM-like) model fails
+  the kurtosis and clustering checks (McElreath Ch. 3; Martin et al. Ch. 2 & 9).
+- **VaR exceedance backtest** — the driver's one-step 95% VaR is breached ~5% of
+  the time, with **Kupiec** (unconditional) and **Christoffersen** (conditional)
+  coverage tests both passing (Edwards pp. 430–436; Handbook of Energy Trading §5).
+
+Run `python -m fce --validate` for the report; snapshot in
+[`deck/VALIDATION_REPORT.md`](deck/VALIDATION_REPORT.md). Quantile calibration
+(interval coverage, pinball loss) lives with the driver's statistical loop in
+`fce/backtest/`.
+
 ## Project layout
 
 ```
@@ -125,6 +148,7 @@ fce/
   accounting/     # Pillar 3 — deterministic 3-statement engine + golden tests
   optimize/       # Pillar 4 — CVXPY allocation + Rockafellar–Uryasev CFaR
   scenarios/      # what-if / macro-SCM do()-interventions, tornado, reverse stress
+  validate/       # metric validation — curve repricing, HMM PPC, VaR/Kupiec backtest
   backtest/       # purged + embargoed CV, coverage/pinball
   projects.py     # the 5 synthetic projects → scenario simulation
   report.py       # Pillar 5 — CFO executive-summary reporter

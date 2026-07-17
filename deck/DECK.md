@@ -170,6 +170,11 @@ an imagined one."
   changes for the same inputs — GAAP-compliant and reproducible.
 - **Stress & sensitivity testing** (this deck) is itself SR 11-7 evidence that the
   model is conservative.
+- **The metrics are validated, not just the code.** The yield curve reprices its
+  own inputs to ~0 bp; posterior predictive checks confirm the driver reproduces
+  the data's fat tails and volatility clustering (a single-vol model fails them);
+  and the 95% VaR is breached ~5% of the time, passing the Kupiec and
+  Christoffersen coverage tests. (Full report: `python -m fce --validate`.)
 - **Explainability:** driver attribution via SHAP (planned) explains *which* macro
   variable drove each project's distribution; the tornado attributes NPV movement in
   the accounting output. Different questions, both answered.
@@ -253,7 +258,10 @@ lower risk appetite — all of which move us left along the frontier toward the 
   2000.)*
 - **Scenarios:** `do()`-interventions over a hand-specified macro SCM. *(Peters et al.,
   Ch. 6; Molak, p. 89.)*
-- **Validation:** purged + embargoed rolling-origin CV. *(López de Prado, AFML Ch. 7.)*
+- **Validation:** curve repricing round-trip; posterior predictive checks *(McElreath
+  Ch. 3; Martin et al. Ch. 2 & 9)*; VaR exceedance backtest with Kupiec &
+  Christoffersen coverage tests *(Edwards pp. 430–436)*; purged + embargoed
+  rolling-origin CV *(López de Prado, AFML Ch. 7)*.
 
 *Reproduce every headline number: `python -m fce --report --hmm`. Full engine:
 `python -m fce --allocate --hmm --quantlib`.*

@@ -43,6 +43,17 @@ CFO one-pager from the live engine (`python -m fce --report [--hmm]`); snapshot 
 + speaker script + Q&A, referencing the 16 exported figures. Regenerate the summary
 after any calibration change so the deck numbers stay live.
 
+**Validation (`fce/validate/`):** metric calibration, distinct from the unit tests.
+`curves.reprice_curve()` = bootstrap round-trip (deposits/swaps reprice to ~0 bp);
+`ppc.posterior_predictive_check()` = HMM adequacy via replicated test statistics
+(vol/kurtosis/ACF₁-of-r²/min → posterior-predictive p-values; a single-vol model
+gets flagged on kurtosis & clustering); `backtest.hmm_one_step_var()` +
+`var_backtest()` = walk-forward 95% VaR with **Kupiec** (unconditional) &
+**Christoffersen** (conditional) coverage tests. `python -m fce --validate` renders
+the report; snapshot `deck/VALIDATION_REPORT.md`. Grounded: McElreath Ch. 3, Martin
+et al. Ch. 2 & 9 (PPC); Edwards pp. 430–436 (VaR exceedance); Ma Weiming Ch. 5 /
+Swindle §7 (repricing). Tests validate the validators have diagnostic power.
+
 ### Scenarios / SCM details (built)
 - `fce/scenarios/scm.py` — `MacroSCM`: hand-specified DAG (rates→{inflation,demand,
   discount}, inflation→demand, commodity/demand→revenue) + structural equations.
