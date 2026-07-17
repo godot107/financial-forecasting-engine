@@ -51,6 +51,9 @@ class Settings:
     # --- Discounting / accounting (MVP defaults) -------------------------
     tax_rate: float = 0.23  # effective corporate tax (EDGAR comparables ~21-25%)
     wacc: float = 0.10  # fallback flat discount when QuantLib curve absent
+    # Spread added to the simulated risk-free short rate to form a project
+    # discount rate (coarse WACC proxy) when the Pillar-2 curve drives discounting.
+    wacc_spread: float = 0.055
 
     # --- Optimization -----------------------------------------------------
     capex_budget: float = 200e6  # annual CapEx ceiling ($)

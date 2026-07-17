@@ -169,3 +169,18 @@ def npv(fcff: np.ndarray, rate: np.ndarray | float, *, periods_per_year: int = 1
     exponents = np.arange(1, t + 1).reshape(1, t)
     discount = (1.0 + period_rate) ** exponents
     return np.sum(fcff / discount, axis=1)
+
+
+def present_value(fcff: np.ndarray, discount_factors: np.ndarray) -> np.ndarray:
+    """Discount an ``(P, T)`` FCFF matrix with explicit discount factors → ``(P,)``.
+
+    ``discount_factors`` is ``(P, T)`` (per-path/per-period, e.g. from the Pillar-2
+    term structure) or ``(T,)`` (one curve for all paths). This is the general
+    form of :func:`npv`; use it when discounting comes from a bootstrapped/simulated
+    curve rather than a flat rate.
+    """
+    fcff = np.asarray(fcff, dtype=float)
+    df = np.asarray(discount_factors, dtype=float)
+    if df.ndim == 1:
+        df = df.reshape(1, -1)
+    return np.sum(fcff * df, axis=1)

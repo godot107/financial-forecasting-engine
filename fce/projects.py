@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from fce.accounting import build_statements, npv
+from fce.accounting import build_statements, npv, present_value
 from fce.config import Settings
 
 
@@ -40,6 +40,7 @@ class Project:
     base_revenue: float      # $/month revenue at the reference WTI
     opex_ratio: float        # opex as a fraction of revenue
     debt: float              # opening debt ($) -> interest drag
+    credit_spread: float = 0.02  # over the risk-free short rate on floating debt
 
 
 # Five competing initiatives with deliberately different risk/return shapes.
@@ -49,11 +50,11 @@ class Project:
 # factor (see :func:`simulate_project_scenarios`), which keeps cross-project
 # correlation well below 1 instead of washing out over the horizon.
 PROJECTS: list[Project] = [
-    Project("Alpha (Clean Retrofit)",   invested=55e6,  wti_beta=0.10,  idio_vol=0.14, base_revenue=10.2e6, opex_ratio=0.58, debt=20e6),
-    Project("Beta (LNG Terminal)",      invested=90e6,  wti_beta=1.15,  idio_vol=0.34, base_revenue=18.6e6, opex_ratio=0.60, debt=60e6),
-    Project("Gamma (Grid Battery)",     invested=40e6,  wti_beta=-0.35, idio_vol=0.08, base_revenue=5.6e6,  opex_ratio=0.54, debt=12e6),
-    Project("Delta (Pipeline IoT)",     invested=30e6,  wti_beta=0.30,  idio_vol=0.08, base_revenue=4.7e6,  opex_ratio=0.56, debt=8e6),
-    Project("Epsilon (Chemical Line)",  invested=70e6,  wti_beta=0.85,  idio_vol=0.28, base_revenue=15.0e6, opex_ratio=0.62, debt=45e6),
+    Project("Alpha (Clean Retrofit)",   invested=55e6,  wti_beta=0.10,  idio_vol=0.14, base_revenue=10.2e6, opex_ratio=0.58, debt=20e6, credit_spread=0.018),
+    Project("Beta (LNG Terminal)",      invested=90e6,  wti_beta=1.15,  idio_vol=0.34, base_revenue=18.6e6, opex_ratio=0.60, debt=60e6, credit_spread=0.030),
+    Project("Gamma (Grid Battery)",     invested=40e6,  wti_beta=-0.35, idio_vol=0.08, base_revenue=5.6e6,  opex_ratio=0.54, debt=12e6, credit_spread=0.015),
+    Project("Delta (Pipeline IoT)",     invested=30e6,  wti_beta=0.30,  idio_vol=0.08, base_revenue=4.7e6,  opex_ratio=0.56, debt=8e6,  credit_spread=0.016),
+    Project("Epsilon (Chemical Line)",  invested=70e6,  wti_beta=0.85,  idio_vol=0.28, base_revenue=15.0e6, opex_ratio=0.62, debt=45e6, credit_spread=0.028),
 ]
 
 
@@ -87,6 +88,7 @@ def simulate_project_scenarios(
     *,
     wti_paths: np.ndarray | None = None,
     wti0: float | None = None,
+    short_rates: np.ndarray | None = None,
 ) -> ProjectScenarios:
     """Run every project through the accounting engine → ``(S, N)`` metric matrices.
 
@@ -97,6 +99,11 @@ def simulate_project_scenarios(
     ``wti_paths`` (``(S, T)``) injects an external driver — e.g. the Pillar-1 HMM
     posterior-predictive paths from :func:`fce.drivers.wti_scenario_paths`; pass
     its ``wti0`` too. When omitted, the fast placeholder GBM driver is used.
+
+    ``short_rates`` (``(S, T)``) injects Pillar-2 rate paths (from
+    :func:`fce.term_structure.rate_scenario_paths`): each project's debt service
+    becomes **floating-rate** and NPV is discounted with **pathwise** factors from
+    the curve. When omitted, a fixed coupon and flat WACC are used.
     """
     settings = settings or Settings()
     projects = projects or PROJECTS
@@ -108,6 +115,20 @@ def simulate_project_scenarios(
             wti0 = float(wti[:, 0].mean())
     s, t = wti.shape
     wti_ret = wti / wti0  # systematic multiplier, mean ~1
+
+    # Pillar-2 stochastic discounting (per-path DFs) when rate paths are supplied.
+    discount_fac = None
+    if short_rates is not None:
+        from fce.term_structure import discount_factors_from_short_rates
+
+        short_rates = np.asarray(short_rates, dtype=float)
+        if short_rates.shape != (s, t):
+            raise ValueError(
+                f"short_rates shape {short_rates.shape} must match drivers {(s, t)}"
+            )
+        discount_fac = discount_factors_from_short_rates(
+            short_rates, spread=settings.wacc_spread
+        )
 
     rng = np.random.default_rng(settings.seed + 1)
     npv_cols, liq_cols, names = [], [], []
@@ -124,6 +145,17 @@ def simulate_project_scenarios(
         idio_month = np.exp(rng.normal(-0.5 * 0.03**2, 0.03, size=(s, t)))
         revenue = proj.base_revenue * (wti_ret ** proj.wti_beta) * idio_scenario * idio_month
 
+        # Debt service: floating-rate off the simulated curve (Pillar 2) if rate
+        # paths are supplied, else a fixed ~6% annual coupon.
+        if short_rates is not None:
+            from fce.term_structure import floating_rate_interest
+
+            interest = floating_rate_interest(
+                short_rates, notional=proj.debt, credit_spread=proj.credit_spread,
+            )
+        else:
+            interest = np.full((s, t), proj.debt * 0.06 / 12)
+
         capex = np.full((s, t), proj.invested / t * 0.30)  # sustaining capex
         stmt = build_statements(
             revenue=revenue,
@@ -131,7 +163,7 @@ def simulate_project_scenarios(
             depreciation=capex,                 # steady-state: dep ≈ sustaining capex
             capex=capex,
             delta_nwc=0.02 * revenue,
-            interest=np.full((s, t), proj.debt * 0.06 / 12),  # ~6% annual coupon
+            interest=interest,
             net_debt_issued=np.zeros((s, t)),
             tax_rate=settings.tax_rate,
             opening_ppe=proj.invested,
@@ -139,7 +171,12 @@ def simulate_project_scenarios(
         )
 
         # Capital-budgeting NPV nets the upfront investment: NPV = −C0 + PV(FCFF).
-        project_npv = npv(stmt.fcff, settings.wacc) - proj.invested   # (S,)
+        # Discount with pathwise term-structure factors (Pillar 2) or flat WACC.
+        if discount_fac is not None:
+            pv = present_value(stmt.fcff, discount_fac)
+        else:
+            pv = npv(stmt.fcff, settings.wacc)
+        project_npv = pv - proj.invested   # (S,)
         liquidity = stmt.fcff.sum(axis=1)                             # (S,) cash thrown off
         npv_cols.append(project_npv / proj.invested)
         liq_cols.append(liquidity / proj.invested)

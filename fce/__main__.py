@@ -22,6 +22,10 @@ def main() -> None:
         "--hmm", action="store_true",
         help="drive allocation with the Pillar-1 NumPyro HMM (else placeholder GBM)",
     )
+    parser.add_argument(
+        "--quantlib", action="store_true",
+        help="add Pillar-2 term structure: floating-rate debt + curve discounting",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -30,7 +34,7 @@ def main() -> None:
     )
 
     if args.allocate:
-        _print_allocation(run_allocation(use_hmm=args.hmm))
+        _print_allocation(run_allocation(use_hmm=args.hmm, use_quantlib=args.quantlib))
         return
 
     result = run_pipeline()

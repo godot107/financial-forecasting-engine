@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-22%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-29%20passing-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-NumPyro%20%C2%B7%20JAX%20%C2%B7%20CVXPY%20%C2%B7%20QuantLib-8A2BE2)
 
 A quantitative engine for allocating a multi-year CapEx budget across competing
@@ -39,7 +39,7 @@ the macro drivers.
 | # | Pillar | Tech | Status |
 |---|--------|------|--------|
 | 1 | **Probabilistic drivers** — regime-switching HMM of commodity prices → Monte-Carlo trajectories with honest P10/P50/P90 | NumPyro / JAX | ✅ built |
-| 2 | **Term structure & debt** — bootstrap yield curves, price floating-rate debt & hedges | QuantLib | ⬜ next |
+| 2 | **Term structure & debt** — bootstrap yield curves, Vasicek short rates, floating-rate debt service | QuantLib | ✅ built |
 | 3 | **Deterministic accounting** — balanced 3-statement articulation (Revenue → FCFF → NPV), vectorized, golden-tested | NumPy / JAX | ✅ built |
 | 4 | **Stochastic allocation** — convex capital budgeting under a CFaR floor | CVXPY | ✅ built |
 
@@ -80,7 +80,8 @@ pip install -r requirements.txt  # full 4-pillar stack (NumPyro, CVXPY, QuantLib
 python -m fce                    # MVP accounting slice (Pillar 3)
 python -m fce --allocate         # CFaR-constrained allocation (Pillars 3+4)
 python -m fce --allocate --hmm   # drive it with the NumPyro HMM (Pillar 1)
-pytest                           # 22 tests: golden identities, leakage-free splits, model recovery
+python -m fce --allocate --hmm --quantlib   # + term-structure discounting & floating debt (Pillar 2)
+pytest                           # 29 tests: golden identities, leakage-free splits, model recovery, curve/debt
 ```
 
 No API keys required to run — the driver falls back to a reproducible synthetic
@@ -97,6 +98,7 @@ Rockafellar & Uryasev):
 - [`01_deterministic_accounting_core.ipynb`](notebooks/01_deterministic_accounting_core.ipynb) — FCFF, balances-by-construction, golden identities, Monte-Carlo NPV.
 - [`02_capital_allocation_cfar.ipynb`](notebooks/02_capital_allocation_cfar.ipynb) — risk-return frontier, recommended allocation, "Tails vs. Spreadsheet" *(Plotly)*.
 - [`03_probabilistic_drivers_hmm.ipynb`](notebooks/03_probabilistic_drivers_hmm.ipynb) — regime decoding, posterior-predictive fan, HMM vs. GBM tails *(Plotly)*.
+- [`04_term_structure_quantlib.ipynb`](notebooks/04_term_structure_quantlib.ipynb) — bootstrapped curve, Vasicek short-rate fan, floating-debt sensitivity *(Plotly)*.
 
 ## Project layout
 
@@ -117,8 +119,6 @@ tests/            # golden identities, split leakage, optimizer, model recovery
 
 ## Roadmap
 
-- **Pillar 2 (QuantLib):** replace the flat WACC with term-structure discounting;
-  shock the yield curve from the same regime draws.
 - **Scenarios / SCM:** `do()`-intervention what-ifs (SOFR +200bp, WTI −30%) and a
   reverse stress test over a hand-specified macro DAG.
 - **Executive deck:** efficient frontier, tails-vs-spreadsheet, SR 11-7 governance.

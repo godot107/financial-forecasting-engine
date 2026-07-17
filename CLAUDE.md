@@ -24,7 +24,7 @@ pytest                           # golden accounting-identity + split-leakage te
 | Pillar | Package | Status |
 |---|---|---|
 | 1. Probabilistic drivers (NumPyro HMM/state-space) | `fce/drivers/` | **built + tests** (GBM still default in pipeline) |
-| 2. Term structure + debt (QuantLib) | `fce/term_structure/` | **stub** (flat WACC in use) |
+| 2. Term structure + debt (QuantLib) | `fce/term_structure/` | **built + tests** (flat WACC still default) |
 | 3. Deterministic 3-statement accounting (NumPy→JAX) | `fce/accounting/` | **built + golden tests** |
 | 4. Stochastic allocation under CFaR (CVXPY) | `fce/optimize/` | **built + tests** |
 | Validation: purged/embargo CV + policy replay | `fce/backtest/` | splits/metrics built; policy stub |
@@ -36,6 +36,26 @@ Two entrypoints in `fce/pipeline.py` (orchestrator-agnostic, same convention as
 `energy-batch-trader`): `run_pipeline()` = MVP accounting slice (Pillar 3);
 `run_allocation()` = full CFaR-constrained allocation + efficient frontier
 (Pillars 3+4). CLI: `python -m fce` / `python -m fce --allocate`.
+
+### Pillar 2 details (built)
+- `fce/term_structure/curves.py` — **QuantLib** bootstrap: deposit helpers (≤1y) +
+  swap helpers (>1y) → `PiecewiseLogLinearDiscount`. `TermStructure` wrapper gives
+  `.discount()/.zero_rate()/.forward_rate()/.monthly_discount_factors()`.
+- `fce/term_structure/rates.py` — **Vasicek** short-rate sim calibrated to the
+  curve (r0=front, θ=10y zero); `discount_factors_from_short_rates()` = pathwise
+  DFs; `rate_scenario_paths(settings)` ties curve+sim → `(short_rates, curve)`.
+- `fce/term_structure/debt.py` — floating-rate interest = outstanding·(r+spread)·τ
+  with **Actual/360** accruals (`monthly_accruals`); bullet/straight amortization.
+- `fce/term_structure/history.py` — `load_treasury_curve()` = FRED DGS* or offline
+  synthetic par curve.
+- Accounting gained `present_value(fcff, discount_factors)` (DF-based, general form
+  of `npv`). `simulate_project_scenarios(short_rates=…)` → floating debt + pathwise
+  discounting; per-project `credit_spread` added to `Project`.
+- **Integration:** `run_allocation(use_quantlib=True)` / `python -m fce --allocate
+  --quantlib` (composes with `--hmm`). Default stays flat WACC + fixed coupon.
+- QuantLib API notes: `SwapRateHelper` needs an `IborIndex`; `curve.calendar()` can
+  be null (compute forwards via explicit `date + Period`). `Actual360`, US
+  GovernmentBond calendar.
 
 ### Pillar 1 details (built)
 - `fce/drivers/hmm.py` — Gaussian **HMM on WTI monthly log-returns**, fit with
@@ -84,6 +104,8 @@ are reviewed against the textbook-kb MCP (cite inline + References section).
   deck. Rebuild+execute: `jupyter nbconvert --to notebook --execute --inplace <nb>`.
 - `notebooks/03_probabilistic_drivers_hmm.ipynb` — Pillar 1 (Viterbi-decoded
   regimes, posterior-predictive fan, HMM-vs-GBM fatter-tails). Plotly + PNGs.
+- `notebooks/04_term_structure_quantlib.ipynb` — Pillar 2 (bootstrapped curve,
+  Vasicek short-rate fan, floating-debt sensitivity, discounting impact). Plotly + PNGs.
 - Deck path: Plotly for the dashboard; PNGs → NotebookLM/PowerPoint for the deck.
 - Notebook tooling (`nbformat nbconvert ipykernel matplotlib plotly kaleido`) is
   installed in `.venv` but NOT in `pyproject`/`requirements` yet.

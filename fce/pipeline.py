@@ -125,25 +125,35 @@ def run_allocation(
     cfar_floor: float | None = None,
     n_frontier: int = 12,
     use_hmm: bool = False,
+    use_quantlib: bool = False,
 ) -> AllocationResult:
     """Simulate the 5 projects and solve the CFaR-constrained allocation (Pillars 3+4).
 
     ``cfar_floor`` defaults to ``Settings.cfar_floor``. ``use_hmm=True`` drives the
     projects with the Pillar-1 NumPyro HMM posterior-predictive WTI paths (cached
-    posterior) instead of the placeholder GBM. Also traces the efficient frontier
-    (expected NPV vs. guaranteed liquidity) — the data the dashboard/deck plot.
-    Returns an :class:`AllocationResult`.
+    posterior) instead of the placeholder GBM. ``use_quantlib=True`` adds Pillar-2
+    term structure: floating-rate debt service and pathwise curve discounting from
+    simulated short-rate trajectories. Also traces the efficient frontier — the
+    data the dashboard/deck plot. Returns an :class:`AllocationResult`.
     """
     settings = settings or get_settings()
     floor = settings.cfar_floor if cfar_floor is None else cfar_floor
 
+    wti_paths, wti0 = None, None
     if use_hmm:
         from fce.drivers import wti_scenario_paths
 
         wti_paths, wti0 = wti_scenario_paths(settings)
-        scen = simulate_project_scenarios(settings, wti_paths=wti_paths, wti0=wti0)
-    else:
-        scen = simulate_project_scenarios(settings)
+
+    short_rates = None
+    if use_quantlib:
+        from fce.term_structure import rate_scenario_paths
+
+        short_rates, _ = rate_scenario_paths(settings)
+
+    scen = simulate_project_scenarios(
+        settings, wti_paths=wti_paths, wti0=wti0, short_rates=short_rates
+    )
     caps = np.array([p.invested for p in PROJECTS])
 
     alloc = allocate(
