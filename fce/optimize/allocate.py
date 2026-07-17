@@ -48,6 +48,29 @@ class Allocation:
     portfolio_npv: np.ndarray # (S,) per-scenario portfolio NPV, for plotting
 
 
+def evaluate(
+    npv_per_dollar: np.ndarray,
+    liq_per_dollar: np.ndarray,
+    dollars: np.ndarray,
+    *,
+    alpha: float = 0.95,
+) -> tuple[float, float]:
+    """Expected NPV and realized CFaR of a **fixed** dollar allocation, ``(E[NPV], CFaR)``.
+
+    Used by the scenario / stress-test tools to score a *locked* policy under
+    shocked driver distributions (no re-optimization). ``dollars`` is ``(N,)``.
+    """
+    R = np.asarray(npv_per_dollar, float)
+    Q = np.asarray(liq_per_dollar, float)
+    x = np.asarray(dollars, float)
+    port_npv = R @ x
+    port_liq = Q @ x
+    var_cut = np.quantile(port_liq, 1.0 - alpha)
+    tail = port_liq[port_liq <= var_cut]
+    cfar = float(tail.mean()) if tail.size else float(port_liq.min())
+    return float(port_npv.mean()), cfar
+
+
 def allocate(
     npv_per_dollar: np.ndarray,
     liq_per_dollar: np.ndarray,

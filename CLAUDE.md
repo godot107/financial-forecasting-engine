@@ -28,7 +28,7 @@ pytest                           # golden accounting-identity + split-leakage te
 | 3. Deterministic 3-statement accounting (NumPy→JAX) | `fce/accounting/` | **built + golden tests** |
 | 4. Stochastic allocation under CFaR (CVXPY) | `fce/optimize/` | **built + tests** |
 | Validation: purged/embargo CV + policy replay | `fce/backtest/` | splits/metrics built; policy stub |
-| What-if / SCM scenarios | `fce/scenarios/` | **stub** (DAG declared) |
+| What-if / SCM scenarios | `fce/scenarios/` | **built + tests** (do()-interventions) |
 | Ingest (EIA + FRED, pinned parquet) | `fce/ingest/` | **built** |
 | 5 synthetic projects → scenario sim | `fce/projects.py` | **built** (feeds optimizer) |
 
@@ -36,6 +36,24 @@ Two entrypoints in `fce/pipeline.py` (orchestrator-agnostic, same convention as
 `energy-batch-trader`): `run_pipeline()` = MVP accounting slice (Pillar 3);
 `run_allocation()` = full CFaR-constrained allocation + efficient frontier
 (Pillars 3+4). CLI: `python -m fce` / `python -m fce --allocate`.
+
+### Scenarios / SCM details (built)
+- `fce/scenarios/scm.py` — `MacroSCM`: hand-specified DAG (rates→{inflation,demand,
+  discount}, inflation→demand, commodity/demand→revenue) + structural equations.
+  `simulate()` → `MacroSample`; `do(sample, {node: fn})` sets intervened nodes and
+  recomputes descendants **holding exogenous noise fixed** (proper counterfactual).
+  Builders: `rate_shock(bp)`, `commodity_shock(pct)`, `combine()`.
+- `fce/scenarios/whatif.py` — `build_context()` locks the recommended allocation on
+  the baseline world; `run_scenarios()` (named), `tornado()`, `reverse_stress()` all
+  score that **locked policy** under `do()`-shocked drivers via `optimize.evaluate()`.
+- Integration: `simulate_project_scenarios(demand_paths=…)` feeds the SCM `demand`
+  node into revenue; rates→discount/debt already wired (Pillar 2). Confounding
+  triangle (rates→inflation, rates→demand) makes do vs. condition genuinely differ.
+- **Design note:** the recommended policy sits *at* the CFaR target by construction,
+  so `reverse_stress` breaches against a lower **covenant floor** (default 0.85×base
+  CFaR) — else the breach frontier degenerates to "everything".
+- **SCOPE GUARD holds:** interventional semantics only; NO causal discovery / effect
+  estimation (that's the retail-pricing project).
 
 ### Pillar 2 details (built)
 - `fce/term_structure/curves.py` — **QuantLib** bootstrap: deposit helpers (≤1y) +
@@ -106,6 +124,8 @@ are reviewed against the textbook-kb MCP (cite inline + References section).
   regimes, posterior-predictive fan, HMM-vs-GBM fatter-tails). Plotly + PNGs.
 - `notebooks/04_term_structure_quantlib.ipynb` — Pillar 2 (bootstrapped curve,
   Vasicek short-rate fan, floating-debt sensitivity, discounting impact). Plotly + PNGs.
+- `notebooks/05_scenarios_causal_stress.ipynb` — Scenarios (macro DAG, do-vs-
+  conditioning, named scenarios, tornado, reverse-stress heatmap). Plotly + PNGs.
 - Deck path: Plotly for the dashboard; PNGs → NotebookLM/PowerPoint for the deck.
 - Notebook tooling (`nbformat nbconvert ipykernel matplotlib plotly kaleido`) is
   installed in `.venv` but NOT in `pyproject`/`requirements` yet.

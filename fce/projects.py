@@ -89,6 +89,7 @@ def simulate_project_scenarios(
     wti_paths: np.ndarray | None = None,
     wti0: float | None = None,
     short_rates: np.ndarray | None = None,
+    demand_paths: np.ndarray | None = None,
 ) -> ProjectScenarios:
     """Run every project through the accounting engine → ``(S, N)`` metric matrices.
 
@@ -104,6 +105,11 @@ def simulate_project_scenarios(
     :func:`fce.term_structure.rate_scenario_paths`): each project's debt service
     becomes **floating-rate** and NPV is discounted with **pathwise** factors from
     the curve. When omitted, a fixed coupon and flat WACC are used.
+
+    ``demand_paths`` (``(S, T)``, a multiplier centered on 1) injects a macro
+    demand driver — e.g. the ``demand`` node of the Pillar-scenarios
+    :class:`~fce.scenarios.scm.MacroSCM`, so a rate/inflation shock flows into
+    revenue. When omitted, demand is neutral (1.0).
     """
     settings = settings or Settings()
     projects = projects or PROJECTS
@@ -144,6 +150,8 @@ def simulate_project_scenarios(
         )
         idio_month = np.exp(rng.normal(-0.5 * 0.03**2, 0.03, size=(s, t)))
         revenue = proj.base_revenue * (wti_ret ** proj.wti_beta) * idio_scenario * idio_month
+        if demand_paths is not None:
+            revenue = revenue * np.clip(demand_paths, 0.0, None)  # macro demand multiplier
 
         # Debt service: floating-rate off the simulated curve (Pillar 2) if rate
         # paths are supplied, else a fixed ~6% annual coupon.

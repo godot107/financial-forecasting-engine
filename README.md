@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-29%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-37%20passing-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-NumPyro%20%C2%B7%20JAX%20%C2%B7%20CVXPY%20%C2%B7%20QuantLib-8A2BE2)
 
 A quantitative engine for allocating a multi-year CapEx budget across competing
@@ -42,6 +42,10 @@ the macro drivers.
 | 2 | **Term structure & debt** — bootstrap yield curves, Vasicek short rates, floating-rate debt service | QuantLib | ✅ built |
 | 3 | **Deterministic accounting** — balanced 3-statement articulation (Revenue → FCFF → NPV), vectorized, golden-tested | NumPy / JAX | ✅ built |
 | 4 | **Stochastic allocation** — convex capital budgeting under a CFaR floor | CVXPY | ✅ built |
+
+Plus **causally-correct scenario analysis**: named what-ifs (SOFR +200bp, WTI −30%),
+tornado sensitivity, and a reverse stress test, all applied as `do()` *interventions*
+over a hand-specified macro DAG — not observational conditioning.
 
 Validation: purged + embargoed rolling-origin backtesting (López de Prado, *AFML*
 Ch. 7), interval coverage / pinball loss, and policy replay across historical
@@ -99,6 +103,7 @@ Rockafellar & Uryasev):
 - [`02_capital_allocation_cfar.ipynb`](notebooks/02_capital_allocation_cfar.ipynb) — risk-return frontier, recommended allocation, "Tails vs. Spreadsheet" *(Plotly)*.
 - [`03_probabilistic_drivers_hmm.ipynb`](notebooks/03_probabilistic_drivers_hmm.ipynb) — regime decoding, posterior-predictive fan, HMM vs. GBM tails *(Plotly)*.
 - [`04_term_structure_quantlib.ipynb`](notebooks/04_term_structure_quantlib.ipynb) — bootstrapped curve, Vasicek short-rate fan, floating-debt sensitivity *(Plotly)*.
+- [`05_scenarios_causal_stress.ipynb`](notebooks/05_scenarios_causal_stress.ipynb) — macro DAG, do-vs-conditioning, named scenarios, tornado, reverse-stress heatmap *(Plotly)*.
 
 ## Project layout
 
@@ -109,7 +114,7 @@ fce/
   term_structure/ # Pillar 2 — QuantLib curves + debt   (stub)
   accounting/     # Pillar 3 — deterministic 3-statement engine + golden tests
   optimize/       # Pillar 4 — CVXPY allocation + Rockafellar–Uryasev CFaR
-  scenarios/      # what-if / macro-SCM interventions    (stub)
+  scenarios/      # what-if / macro-SCM do()-interventions, tornado, reverse stress
   backtest/       # purged + embargoed CV, coverage/pinball
   projects.py     # the 5 synthetic projects → scenario simulation
   pipeline.py     # orchestrator-agnostic entrypoints
@@ -119,9 +124,9 @@ tests/            # golden identities, split leakage, optimizer, model recovery
 
 ## Roadmap
 
-- **Scenarios / SCM:** `do()`-intervention what-ifs (SOFR +200bp, WTI −30%) and a
-  reverse stress test over a hand-specified macro DAG.
-- **Executive deck:** efficient frontier, tails-vs-spreadsheet, SR 11-7 governance.
+- **Executive deck:** assemble the exported figures across all pillars into a CFO
+  narrative — efficient frontier, tails-vs-spreadsheet, regimes, term structure,
+  and the causal stress views — with SR 11-7 model-governance framing.
 
 ## License
 

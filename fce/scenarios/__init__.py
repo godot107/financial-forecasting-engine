@@ -26,7 +26,29 @@ retail-pricing causal project. Keep this project's identity = probabilistic
 simulation + optimization.
 """
 
-from fce.scenarios.scm import MacroSCM
-from fce.scenarios.whatif import reverse_stress, scenario, tornado
+from fce.scenarios.scm import (
+    MacroSample,
+    MacroSCM,
+    combine,
+    commodity_shock,
+    rate_shock,
+)
+from fce.scenarios.whatif import (
+    DEFAULT_SCENARIOS,
+    ReverseStress,
+    ScenarioContext,
+    ScenarioResult,
+    TornadoBar,
+    build_context,
+    reverse_stress,
+    run_scenarios,
+    tornado,
+)
 
-__all__ = ["MacroSCM", "scenario", "tornado", "reverse_stress"]
+__all__ = [
+    "MacroSCM", "MacroSample", "rate_shock", "commodity_shock", "combine",
+    "build_context", "ScenarioContext",
+    "run_scenarios", "ScenarioResult", "DEFAULT_SCENARIOS",
+    "tornado", "TornadoBar",
+    "reverse_stress", "ReverseStress",
+]

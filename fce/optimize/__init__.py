@@ -18,7 +18,10 @@ Implemented: :func:`allocate` (single solve) and :func:`efficient_frontier`
 (NPV↔CFaR sweep). Scenario inputs come from :func:`fce.projects.simulate_project_scenarios`.
 """
 
-from fce.optimize.allocate import Allocation, allocate
+from fce.optimize.allocate import Allocation, allocate, evaluate
 from fce.optimize.frontier import FrontierPoint, efficient_frontier, max_cfar
 
-__all__ = ["Allocation", "allocate", "FrontierPoint", "efficient_frontier", "max_cfar"]
+__all__ = [
+    "Allocation", "allocate", "evaluate",
+    "FrontierPoint", "efficient_frontier", "max_cfar",
+]
