@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-37%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-38%20passing-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-NumPyro%20%C2%B7%20JAX%20%C2%B7%20CVXPY%20%C2%B7%20QuantLib-8A2BE2)
 
 A quantitative engine for allocating a multi-year CapEx budget across competing
@@ -85,7 +85,8 @@ python -m fce                    # MVP accounting slice (Pillar 3)
 python -m fce --allocate         # CFaR-constrained allocation (Pillars 3+4)
 python -m fce --allocate --hmm   # drive it with the NumPyro HMM (Pillar 1)
 python -m fce --allocate --hmm --quantlib   # + term-structure discounting & floating debt (Pillar 2)
-pytest                           # 29 tests: golden identities, leakage-free splits, model recovery, curve/debt
+python -m fce --report --hmm     # CFO-ready executive summary in Markdown (Pillar 5)
+pytest                           # 38 tests: golden identities, leakage-free splits, model recovery, curve/debt
 ```
 
 No API keys required to run — the driver falls back to a reproducible synthetic
@@ -105,28 +106,41 @@ Rockafellar & Uryasev):
 - [`04_term_structure_quantlib.ipynb`](notebooks/04_term_structure_quantlib.ipynb) — bootstrapped curve, Vasicek short-rate fan, floating-debt sensitivity *(Plotly)*.
 - [`05_scenarios_causal_stress.ipynb`](notebooks/05_scenarios_causal_stress.ipynb) — macro DAG, do-vs-conditioning, named scenarios, tornado, reverse-stress heatmap *(Plotly)*.
 
+## Executive deck
+
+The pillars culminate in a mock CFO / capital-allocation-committee presentation:
+
+- [`deck/DECK.md`](deck/DECK.md) — 12-slide boardroom narrative with speaker script,
+  anticipated Q&A, and a methodology appendix, illustrated by the exported pillar figures.
+- [`deck/EXECUTIVE_SUMMARY.md`](deck/EXECUTIVE_SUMMARY.md) — the committed snapshot of
+  `python -m fce --report --hmm`; every headline number in the deck traces to it.
+
 ## Project layout
 
 ```
 fce/
   ingest/         # EIA + FRED clients, pinned-vintage parquet cache
   drivers/        # Pillar 1 — NumPyro regime-switching HMM
-  term_structure/ # Pillar 2 — QuantLib curves + debt   (stub)
+  term_structure/ # Pillar 2 — QuantLib curves + Vasicek rates + floating debt
   accounting/     # Pillar 3 — deterministic 3-statement engine + golden tests
   optimize/       # Pillar 4 — CVXPY allocation + Rockafellar–Uryasev CFaR
   scenarios/      # what-if / macro-SCM do()-interventions, tornado, reverse stress
   backtest/       # purged + embargoed CV, coverage/pinball
   projects.py     # the 5 synthetic projects → scenario simulation
+  report.py       # Pillar 5 — CFO executive-summary reporter
   pipeline.py     # orchestrator-agnostic entrypoints
 notebooks/        # tutorials + exported deck figures
+deck/             # boardroom narrative + committed executive-summary snapshot
 tests/            # golden identities, split leakage, optimizer, model recovery
 ```
 
 ## Roadmap
 
-- **Executive deck:** assemble the exported figures across all pillars into a CFO
-  narrative — efficient frontier, tails-vs-spreadsheet, regimes, term structure,
-  and the causal stress views — with SR 11-7 model-governance framing.
+- **Executive deck** — ✅ drafted: [`deck/DECK.md`](deck/DECK.md) assembles the exported
+  pillar figures (frontier, tails-vs-spreadsheet, regimes, term structure, causal stress)
+  into an SR 11-7-framed CFO narrative.
+- **Historical policy replay** — backtest the recommended allocation across real stress
+  windows (2008, 2014–16 oil crash, 2020, 2022 rate spike) with purged + embargoed CV.
 
 ## License
 

@@ -73,6 +73,9 @@ class ScenarioContext:
     dollars: np.ndarray            # the locked allocation ($ per project)
     base_npv: float
     base_cfar: float
+    scen: object = None            # baseline ProjectScenarios (for the frontier/report)
+    caps: np.ndarray = None        # per-project absorption caps
+    names: list = None             # project names
 
 
 def build_context(settings: Settings | None = None, *, use_hmm: bool = False) -> ScenarioContext:
@@ -91,7 +94,10 @@ def build_context(settings: Settings | None = None, *, use_hmm: bool = False) ->
     )
     npv, cfar = evaluate(scen.npv_per_dollar, scen.liq_per_dollar, alloc.dollars,
                          alpha=settings.cfar_alpha)
-    return ScenarioContext(settings, scm, base_sample, wti0, alloc.dollars, npv, cfar)
+    return ScenarioContext(
+        settings, scm, base_sample, wti0, alloc.dollars, npv, cfar,
+        scen=scen, caps=caps, names=scen.names,
+    )
 
 
 def _score(ctx: ScenarioContext, interventions: dict) -> tuple[float, float]:

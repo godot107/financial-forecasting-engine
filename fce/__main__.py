@@ -26,12 +26,22 @@ def main() -> None:
         "--quantlib", action="store_true",
         help="add Pillar-2 term structure: floating-rate debt + curve discounting",
     )
+    parser.add_argument(
+        "--report", action="store_true",
+        help="print the CFO-ready executive summary (Markdown)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
     )
+
+    if args.report:
+        from fce.report import executive_summary
+
+        print(executive_summary(use_hmm=args.hmm).to_markdown())
+        return
 
     if args.allocate:
         _print_allocation(run_allocation(use_hmm=args.hmm, use_quantlib=args.quantlib))

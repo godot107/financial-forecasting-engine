@@ -35,7 +35,13 @@ pytest                           # golden accounting-identity + split-leakage te
 Two entrypoints in `fce/pipeline.py` (orchestrator-agnostic, same convention as
 `energy-batch-trader`): `run_pipeline()` = MVP accounting slice (Pillar 3);
 `run_allocation()` = full CFaR-constrained allocation + efficient frontier
-(Pillars 3+4). CLI: `python -m fce` / `python -m fce --allocate`.
+(Pillars 3+4). CLI: `python -m fce` / `python -m fce --allocate [--hmm] [--quantlib]`.
+
+**Pillar 5 (deck):** `fce/report.py::executive_summary()` computes the canonical
+CFO one-pager from the live engine (`python -m fce --report [--hmm]`); snapshot in
+`deck/EXECUTIVE_SUMMARY.md`. `deck/DECK.md` = the slide-by-slide boardroom narrative
++ speaker script + Q&A, referencing the 16 exported figures. Regenerate the summary
+after any calibration change so the deck numbers stay live.
 
 ### Scenarios / SCM details (built)
 - `fce/scenarios/scm.py` — `MacroSCM`: hand-specified DAG (rates→{inflation,demand,
